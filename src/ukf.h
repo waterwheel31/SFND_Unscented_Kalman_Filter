@@ -57,8 +57,22 @@ class UKF {
   // state covariance matrix
   Eigen::MatrixXd P_;
 
+  // state vector - augumented
+  Eigen::VectorXd x_aug_;
+
+    // state covariance matrix - augmented
+  Eigen::MatrixXd P_aug_;
+
+// predicted sigma points matrix
+  Eigen::MatrixXd X_sig_aug_;
+
   // predicted sigma points matrix
-  Eigen::MatrixXd Xsig_pred_;
+  Eigen::MatrixXd X_sig_pred_;
+
+  // Measurament Noise conv matrix 
+  Eigen::MatrixXd R_lidar_;
+  Eigen::MatrixXd R_radar_;
+  
 
   // time when the state is true, in us
   long long time_us_;
@@ -92,9 +106,17 @@ class UKF {
 
   // Augmented state dimension
   int n_aug_;
+  
+   // Sigma demension
+  int n_sig_;
+
+
 
   // Sigma point spreading parameter
   double lambda_;
+
+  
+
 };
 
 #endif  // UKF_H

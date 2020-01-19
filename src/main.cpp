@@ -14,14 +14,14 @@ int main(int argc, char** argv)
 	// set camera position and angle
 	viewer->initCameraParameters();
 	float x_pos = 0;
-	viewer->setCameraPosition ( x_pos-26, 0, 15.0, x_pos+25, 0, 0, 0, 0, 1);
+	viewer->setCameraPosition ( x_pos-56, 0, 15.0, x_pos+25, 0, 0, 0, 0, 1);
 
 	Highway highway(viewer);
 
 	//initHighway(viewer);
 
 	int frame_per_sec = 30;
-	int sec_interval = 10;
+	int sec_interval = 5;
 	int frame_count = 0;
 	int time_us = 0;
 

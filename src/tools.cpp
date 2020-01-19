@@ -20,7 +20,8 @@ double Tools::noise(double stddev, long long seedNum)
 lmarker Tools::lidarSense(Car& car, pcl::visualization::PCLVisualizer::Ptr& viewer, long long timestamp, bool visualize)
 {
 	MeasurementPackage meas_package;
-	meas_package.sensor_type_ = MeasurementPackage::LASER;
+	//meas_package.sensor_type_ = MeasurementPackage::LASER;
+	meas_package.sensor_type_ = MeasurementPackage::SensorType::LASER;
   	meas_package.raw_measurements_ = VectorXd(2);
 
 	lmarker marker = lmarker(car.position.x + noise(0.15,timestamp), car.position.y + noise(0.15,timestamp+1));
@@ -50,7 +51,8 @@ rmarker Tools::radarSense(Car& car, Car ego, pcl::visualization::PCLVisualizer::
 	}
 	
 	MeasurementPackage meas_package;
-	meas_package.sensor_type_ = MeasurementPackage::RADAR;
+	//meas_package.sensor_type_ = MeasurementPackage::RADAR;  
+	meas_package.sensor_type_ = MeasurementPackage::SensorType::RADAR;  
     meas_package.raw_measurements_ = VectorXd(3);
     meas_package.raw_measurements_ << marker.rho, marker.phi, marker.rho_dot;
     meas_package.timestamp_ = timestamp;
@@ -100,8 +102,17 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
 		return rmse;
 	}
 
+	// std::cout << "estimations size: " << estimations.size() << std::endl; 
+
+	//std::cout << "x estimate: " << estimations.size()-1 <<  std:: endl << estimations[estimations.size()-1]  << std::endl; 
+	//std::cout << " x ground truth: "  << estimations.size()-1 <<  std::endl << ground_truth[estimations.size()-1] << std::endl;
+
 	//accumulate squared residuals
 	for(unsigned int i=0; i < estimations.size(); ++i){
+
+
+		//std::cout << "x estimate: " << i << " -" <<   std:: endl << estimations[i]  << std::endl; 
+		//std::cout << " x ground truth: "  << i << " -"  << std::endl << ground_truth[i] << std::endl; 
 
 		VectorXd residual = estimations[i] - ground_truth[i];
 

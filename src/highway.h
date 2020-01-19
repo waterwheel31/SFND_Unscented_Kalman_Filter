@@ -127,12 +127,18 @@ public:
 			// Sense surrounding cars with lidar and radar
 			if(trackCars[i])
 			{
+				
+				// Ground truth 
 				VectorXd gt(4);
 				gt << traffic[i].position.x, traffic[i].position.y, traffic[i].velocity*cos(traffic[i].angle), traffic[i].velocity*sin(traffic[i].angle);
 				tools.ground_truth.push_back(gt);
+				
+				// Sensor measurabment 
 				tools.lidarSense(traffic[i], viewer, timestamp, visualize_lidar);
 				tools.radarSense(traffic[i], egoCar, viewer, timestamp, visualize_radar);
 				tools.ukfResults(traffic[i],viewer, projectedTime, projectedSteps);
+
+				// Kalman filter estimate
 				VectorXd estimate(4);
 				double v  = traffic[i].ukf.x_(2);
     			double yaw = traffic[i].ukf.x_(3);
