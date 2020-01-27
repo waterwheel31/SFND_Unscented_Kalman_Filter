@@ -86,11 +86,11 @@ struct Lidar
 		: cloud(new pcl::PointCloud<pcl::PointXYZ>()), position(0,0,3.0)
 	{
 		// TODO:: set minDistance to 5 to remove points from roof of ego car
-		minDistance = 0;
+		minDistance = 5;
 		maxDistance = 120;
 		resoultion = 0.2;
 		// TODO:: set sderr to 0.2 to get more interesting pcd files
-		sderr = 0.02;
+		sderr = 0.2;
 		cars = setCars;
 		groundSlope = setGroundSlope;
 

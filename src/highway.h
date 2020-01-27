@@ -20,11 +20,11 @@ public:
 	// Parameters 
 	// --------------------------------
 	// Set which cars to track with UKF
-	std::vector<bool> trackCars = {true,true,true};
+	std::vector<bool> trackCars = {true,false,false};
 	// Visualize sensor measurements
 	bool visualize_lidar = true;
 	bool visualize_radar = true;
-	bool visualize_pcd = false;
+	bool visualize_pcd = true;
 	// Predict path in the future using UKF
 	double projectedTime = 0;
 	int projectedSteps = 0;
@@ -146,9 +146,12 @@ public:
     			double v2 = sin(yaw)*v;
 				estimate << traffic[i].ukf.x_[0], traffic[i].ukf.x_[1], v1, v2;
 				tools.estimations.push_back(estimate);
-	
+				if(i==0){
+					std::cout << "esimation: " << estimate[0] << " " << estimate[1] <<  " ground truth:" <<  gt[0] << " " << gt[1] <<  std::endl;
+				}
 			}
 		}
+		
 		viewer->addText("Accuracy - RMSE:", 30, 300, 20, 1, 1, 1, "rmse");
 		VectorXd rmse = tools.CalculateRMSE(tools.estimations, tools.ground_truth);
 		viewer->addText(" X: "+std::to_string(rmse[0]), 30, 275, 20, 1, 1, 1, "rmse_x");
