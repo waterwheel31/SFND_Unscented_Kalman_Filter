@@ -459,7 +459,6 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   x_ = x_ + K * (z_ - z_pred_);
   P_ = P_ - K * S * K.transpose();
 
-
   //std::cout << "X differential :" << K * z_diff << std::endl;  
   //std::cout << "Update end  x_ " << std::endl << x_ << std::endl; 
 
