@@ -119,7 +119,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
           double vx = r_velocity * cos(phi);
           double vy = r_velocity * sin(phi);
-          double v = r_velocity; // sqrt(vx * vx + vy * vy);
+          double v =   sqrt(vx * vx + vy * vy);//r_velocity;
 
           x_ << x, y, v, 0, 0; 
 
@@ -135,6 +135,15 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
   // Prediction
   double delta_t = (meas_package.timestamp_ - time_us_) * 1e-6;
+  time_us_ = meas_package.timestamp_; 
+
+  while (delta_t > 0.1) {
+        constexpr double delta_t_temp = 0.05;
+        Prediction(delta_t_temp);
+        delta_t -= delta_t_temp;
+    }
+
+
   Prediction(delta_t); 
 
   //std::cout << meas_package.sensor_type_;
@@ -357,7 +366,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
     Z_sig(0,i) = rho;                  // rho
     Z_sig(1,i) = phi;                         // phi
-    if (std::fabs(rho) > 0){
+    if (std::fabs(rho) > 0.001){
       Z_sig(2,i) = (p_x*v_x + p_y*v_y) / rho;   // rho_dot
       //std::cout <<  "Z_sig(2,i) count, value = "  << Z_sig(2,i)  << "p_x: "<< p_x << " p_y: " << p_y <<  " v:" << v   << " v_x: "  << v_x << " v_y: " << v_y  << " yaw: "<< yaw << std::endl;
     } else {
