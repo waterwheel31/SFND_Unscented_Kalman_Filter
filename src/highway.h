@@ -147,7 +147,7 @@ public:
 				estimate << traffic[i].ukf.x_[0], traffic[i].ukf.x_[1], v1, v2;
 				tools.estimations.push_back(estimate);
 				if(i==0){
-					std::cout << "esimation: " << estimate[0] << " " << estimate[1] <<  " ground truth:" <<  gt[0] << " " << gt[1] <<  std::endl;
+					std::cout << "esimation: " << estimate[0] << " " << estimate[1] << " " << estimate[2] << " " << estimate[3] <<std::endl <<  "ground truth:" <<  gt[0] << " " << gt[1]  << " " << gt[2]  << " " << gt[3] <<  std::endl;
 				}
 			}
 		}

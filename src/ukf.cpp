@@ -28,10 +28,10 @@ UKF::UKF() {
   P_.fill(0.0);
  
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 1.0;
+  std_a_ = 0.5;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 0.02; // original 30
+  std_yawdd_ = 0.002; // original 30
   
   /**
    * DO NOT MODIFY measurement noise values below. These are provided by the sensor manufacturer.
@@ -141,10 +141,10 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   // double delta_t = (meas_package.timestamp_ - time_us_) * 1e-6;
   const double delta_t{ (meas_package.timestamp_ - time_us_) / 1000000.0 };
 
-  if (delta_t > 0){
-
+  if (delta_t >= 0){
       time_us_ = meas_package.timestamp_; 
 
+      std::cout << "delta_t is positive. sensor type: " << meas_package.sensor_type_ << std::endl; 
       /*
       while (delta_t > 0.1) {
             constexpr double delta_t_temp = 0.05;
@@ -152,8 +152,6 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
             delta_t -= delta_t_temp;
         }
       */
-
-
       Prediction(delta_t); 
 
       //std::cout << meas_package.sensor_type_;
@@ -166,6 +164,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
         UpdateRadar(meas_package);
         //std::cout << " Update Radar" << std::endl;
       }
+  } else { 
+    std::cout << "delta_t is not positive. sensor type: " << meas_package.sensor_type_ << std::endl; 
   }
 }
 
@@ -208,16 +208,16 @@ void UKF::Prediction(double delta_t) {
       X_sig_aug_.col(i+1)          = x_aug_ + sqrt(lambda_ + n_aug_) * L.col(i);    // 1st set 
       X_sig_aug_.col(i+1 + n_aug_) = x_aug_ - sqrt(lambda_ + n_aug_) * L.col(i);  // 2nd set 
 
-      std::cout << "L.col(i): " << L.col(i)[0] << " " << L.col(i)[1] << " "<< L.col(i)[2] << " " << L.col(i)[3] << " " <<  L.col(i)[4] << std::endl;
+      //std::cout << "L.col(i): " << L.col(i)[0] << " " << L.col(i)[1] << " "<< L.col(i)[2] << " " << L.col(i)[3] << " " <<  L.col(i)[4] << std::endl;
     }
 
-    std::cout << "x_aug_: " << x_aug_[0] << " "  << x_aug_[1] << " "  << x_aug_[2] << " "  << x_aug_[3] << " "  << x_aug_[4] << " "  << x_aug_[5] << " "  << x_aug_[6] << std::endl; 
+    //std::cout << "x_aug_: " << x_aug_[0] << " "  << x_aug_[1] << " "  << x_aug_[2] << " "  << x_aug_[3] << " "  << x_aug_[4] << " "  << x_aug_[5] << " "  << x_aug_[6] << std::endl; 
 
     // Predicting sigma points   
     //std::cout << "Prediction() -predicting sigma points" << std::endl;
     X_sig_pred_ = MatrixXd(n_x_, n_sig_);
     
-    std::cout << "X_sig_aug: " << std::endl << X_sig_aug_ << std::endl;  
+    //std::cout << "X_sig_aug: " << std::endl << X_sig_aug_ << std::endl;  
 
     for (int i = 0; i < n_sig_; i++){
 
@@ -266,7 +266,7 @@ void UKF::Prediction(double delta_t) {
 
       //std::cout << "delta_t: " << delta_t << std::endl;  
 
-      std::cout << "nu_a: " << nu_a << "| px_p: "<< px_p << " |py_p:  " << py_p << " |v_p:  " << v_p << " |yaw_p: " << yaw_p  << " |yawd_p: " << yawd_p << std::endl;  //  "  delta_t: " << delta_t <<  std::endl; 
+      // std::cout << "nu_a: " << nu_a << "| px_p: "<< px_p << " |py_p:  " << py_p << " |v_p:  " << v_p << " |yaw_p: " << yaw_p  << " |yawd_p: " << yawd_p << std::endl;  //  "  delta_t: " << delta_t <<  std::endl; 
       //std::cout << "X_sig_pred col: " << i << std::endl << X_sig_pred_.col(i) << std::endl; 
 
       // predicting state mean
@@ -379,10 +379,10 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
    * You can also calculate the radar NIS, if desired.
    */
 
+  std::cout << "update radar:" << std::endl; 
 
   //std::cout << "z_ " << std::endl << z_ << std::endl;
-
-  //std::cout << "X_sig_pred_ " << std::endl << X_sig_pred_ << std::endl;
+  std::cout << "X_sig_pred_.col(0): " << X_sig_pred_.col(0)[0] << " " << X_sig_pred_.col(0)[1] << " " << X_sig_pred_.col(0)[2]<< " " << X_sig_pred_.col(0)[3] << " " <<  X_sig_pred_.col(0)[4] <<std::endl;
 
   // transforming sigma points into measurement space 
    //std::cout << "transforming sigma points into measurement space  " << std::endl;
@@ -404,7 +404,6 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
       double phi = atan2(p_y,p_x);  
       double rho_dot = v; //0.0; 
 
-  
 
       Z_sig(0,i) = rho;                  // rho
       Z_sig(1,i) = phi;                         // phi
@@ -434,7 +433,10 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
      //std::cout << "Z_sig.col(i):" << Z_sig.col(i) << std::endl; 
 
      z_pred_ = z_pred_ + weights_(i) * Z_sig.col(i);
+     //std::cout << "Z_sig.col( " <<i <<  "): " << Z_sig.col(i)[0] <<  " " << Z_sig.col(i)[1] << " " << Z_sig.col(i)[2] <<std:: endl; 
    }
+
+   std::cout << " z_pred_: : " <<  z_pred_[0] << " " << z_pred_[1] << " " << z_pred_[2]  << std::endl; 
 
    //std::cout << "z_pred " << std::endl << z_pred << std::endl;
 
@@ -494,7 +496,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
 
   VectorXd z_diff = z_ - z_pred_;
-  std::cout << " z_diff : " <<  z_diff[0] << " " << z_diff[1] << " " << z_diff[2]  << std::endl; 
+  //std::cout << " z_diff : " <<  z_diff[0] << " " << z_diff[1] << " " << z_diff[2]  << std::endl; 
 
   //std::cout << "z_diff: " << std::endl << z_diff  << std::endl; 
 
