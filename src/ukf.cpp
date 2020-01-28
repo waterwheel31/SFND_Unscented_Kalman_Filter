@@ -18,6 +18,7 @@ UKF::UKF() {
    // initial state vector
   n_x_ = 5;
   x_ = VectorXd(n_x_); 
+  x_.fill(0.0);
   n_aug_ = n_x_ + 2;   //  adding 2 noise factors
   n_sig_ = n_aug_ * 2 + 1; 
   lambda_ = 3 - n_aug_;
@@ -27,10 +28,10 @@ UKF::UKF() {
   P_.fill(0.0);
  
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 0.005;
+  std_a_ = 1.0;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 0.001; // original 30
+  std_yawdd_ = 0.02; // original 30
   
   /**
    * DO NOT MODIFY measurement noise values below. These are provided by the sensor manufacturer.
@@ -134,27 +135,37 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   // std::cout << "process measurement  x_ : " << std::endl << x_  << std::endl;
 
   // Prediction
-  double delta_t = (meas_package.timestamp_ - time_us_) * 1e-6;
-  time_us_ = meas_package.timestamp_; 
 
-  while (delta_t > 0.1) {
-        constexpr double delta_t_temp = 0.05;
-        Prediction(delta_t_temp);
-        delta_t -= delta_t_temp;
-    }
+  std::cout << "meas_package.timestamp_: "  << meas_package.timestamp_ << "  time_us_: " << time_us_ << std::endl; 
+
+  // double delta_t = (meas_package.timestamp_ - time_us_) * 1e-6;
+  const double delta_t{ (meas_package.timestamp_ - time_us_) / 1000000.0 };
+
+  if (delta_t > 0){
+
+      time_us_ = meas_package.timestamp_; 
+
+      /*
+      while (delta_t > 0.1) {
+            constexpr double delta_t_temp = 0.05;
+            Prediction(delta_t_temp);
+            delta_t -= delta_t_temp;
+        }
+      */
 
 
-  Prediction(delta_t); 
+      Prediction(delta_t); 
 
-  //std::cout << meas_package.sensor_type_;
-  // Update measurament 
-  if(meas_package.sensor_type_ == MeasurementPackage::LASER && use_laser_){
-    UpdateLidar(meas_package);
-    //std::cout << " Update Lidar" << std::endl;
-  }
-  if(meas_package.sensor_type_ == MeasurementPackage::RADAR && use_radar_){
-    UpdateRadar(meas_package);
-    //std::cout << " Update Radar" << std::endl;
+      //std::cout << meas_package.sensor_type_;
+      // Update measurament 
+      if(meas_package.sensor_type_ == MeasurementPackage::LASER && use_laser_){
+        UpdateLidar(meas_package);
+        //std::cout << " Update Lidar" << std::endl;
+      }
+      if(meas_package.sensor_type_ == MeasurementPackage::RADAR && use_radar_){
+        UpdateRadar(meas_package);
+        //std::cout << " Update Radar" << std::endl;
+      }
   }
 }
 
@@ -166,6 +177,8 @@ void UKF::Prediction(double delta_t) {
    */
     //std::cout << "Prediction()" << std::endl;
      // Augumentation and generation of sigma points 
+
+    std::cout << "delta_t: " << delta_t << std::endl;  
 
     X_sig_aug_ = MatrixXd(n_aug_, n_sig_);     //Sigma points.  7 x 15 
     X_sig_aug_.fill(0.0); 
@@ -181,6 +194,10 @@ void UKF::Prediction(double delta_t) {
     P_aug_ = MatrixXd(n_aug_, n_aug_);   // Covariance matrix 
     P_aug_.fill(0.0);
     P_aug_.topLeftCorner(n_x_, n_x_) = P_; 
+
+    //std::cout << "P_ :"  << std::endl << P_ << std::endl;  
+
+
     P_aug_(n_x_, n_x_) = std_a_ * std_a_;
     P_aug_(n_x_ + 1, n_x_ + 1) = std_yawdd_ * std_yawdd_; 
 
@@ -190,13 +207,17 @@ void UKF::Prediction(double delta_t) {
     for (int i = 0; i < n_aug_; i++){
       X_sig_aug_.col(i+1)          = x_aug_ + sqrt(lambda_ + n_aug_) * L.col(i);    // 1st set 
       X_sig_aug_.col(i+1 + n_aug_) = x_aug_ - sqrt(lambda_ + n_aug_) * L.col(i);  // 2nd set 
+
+      std::cout << "L.col(i): " << L.col(i)[0] << " " << L.col(i)[1] << " "<< L.col(i)[2] << " " << L.col(i)[3] << " " <<  L.col(i)[4] << std::endl;
     }
 
+    std::cout << "x_aug_: " << x_aug_[0] << " "  << x_aug_[1] << " "  << x_aug_[2] << " "  << x_aug_[3] << " "  << x_aug_[4] << " "  << x_aug_[5] << " "  << x_aug_[6] << std::endl; 
 
     // Predicting sigma points   
     //std::cout << "Prediction() -predicting sigma points" << std::endl;
-    X_sig_pred_ = MatrixXd(n_x_, n_sig_);    // 7 dimension -> 5 dimensions 
-    X_sig_pred_.fill(0.0);
+    X_sig_pred_ = MatrixXd(n_x_, n_sig_);
+    
+    std::cout << "X_sig_aug: " << std::endl << X_sig_aug_ << std::endl;  
 
     for (int i = 0; i < n_sig_; i++){
 
@@ -216,8 +237,8 @@ void UKF::Prediction(double delta_t) {
         px_p = p_x + v / yawd + (sin(yaw + yawd * delta_t) - sin(yaw));
         py_p = p_y + v / yawd + (cos(yaw) - cos(yaw + yawd * delta_t));
       } else { 
-        px_p = p_x + v * delta_t * cos(yaw); 
-        py_p = p_y + v * delta_t * sin(yaw);
+        //px_p = p_x + v * delta_t * cos(yaw); 
+        //py_p = p_y + v * delta_t * sin(yaw);
       }
 
       std::cout << "px_p:" << px_p << " v :" << v << std::endl; 
@@ -243,7 +264,9 @@ void UKF::Prediction(double delta_t) {
       X_sig_pred_(3,i) = yaw_p; 
       X_sig_pred_(4,i) = yawd_p; 
 
-      //std::cout << "nu_a: " << nu_a << "|"<< px_p << " | " << py_p << " | " << v_p << " | " << yaw_p  << " | " << yawd_p << std::endl; 
+      //std::cout << "delta_t: " << delta_t << std::endl;  
+
+      std::cout << "nu_a: " << nu_a << "| px_p: "<< px_p << " |py_p:  " << py_p << " |v_p:  " << v_p << " |yaw_p: " << yaw_p  << " |yawd_p: " << yawd_p << std::endl;  //  "  delta_t: " << delta_t <<  std::endl; 
       //std::cout << "X_sig_pred col: " << i << std::endl << X_sig_pred_.col(i) << std::endl; 
 
       // predicting state mean
@@ -251,7 +274,11 @@ void UKF::Prediction(double delta_t) {
       x_.fill(0.0); 
       for (int i = 0; i < n_sig_; i++){
         x_ = x_ + weights_(i) * X_sig_pred_.col(i); 
-         // std::cout << "prediction " << " x: " << x_[0] << " " << x_[1]  << " " << x_[2]  << " " << x_[3]  << " " << x_[4] << "  weights_(" << i << ")  " <<  weights_(i)  << " " <<    "    X_sig_pred_.col(i) " <<  X_sig_pred_.col(i)[0] << " " <<  X_sig_pred_.col(i)[1]  << " " <<  X_sig_pred_.col(i)[2] << " " << X_sig_pred_.col(i)[3] << " " <<  X_sig_pred_.col(i)[4]     << std::endl;  
+        //std::cout << "prediction " << " x: " << x_[0] << " " << x_[1]  << " " << x_[2]  << " " << x_[3]  << " " << x_[4] <<  "    X_sig_pred_.col(i) " <<  X_sig_pred_.col(i)[0] << " " <<  X_sig_pred_.col(i)[1]  << " " <<  X_sig_pred_.col(i)[2] << " " << X_sig_pred_.col(i)[3] << " " <<  X_sig_pred_.col(i)[4]     << std::endl;  
+        
+        counter ++;
+        //std::cout << "counter:" << counter << std::endl;
+        // if (counter >= 10000) {exit(1); }
       }
 
       // predicting state covariance 
@@ -259,11 +286,20 @@ void UKF::Prediction(double delta_t) {
       for (int i = 0; i < n_sig_; i++){
         VectorXd x_diff = X_sig_pred_.col(i) - x_; 
 
-        while(x_diff(3) > M_PI) {x_diff(3) -= 2.*M_PI; }
-        while(x_diff(3) < -M_PI) {x_diff(3) += 2.*M_PI; }
+        //std::cout << "x_sig_pred_col(i): " << X_sig_pred_.col(i)[0] << " " << X_sig_pred_.col(i)[1] << " " << X_sig_pred_.col(i)[2] << " " << X_sig_pred_.col(i)[3] << " " << X_sig_pred_.col(i)[4] << std::endl; 
+        //std::cout << "x_: " << x_[0] << " " << x_[1] << " " << x_[2] << " " << x_[3] << " " << x_[4] << std::endl; 
 
-        P_ = P_ + weights_(i) * x_diff * x_diff.transpose();
+        //while(x_diff(3) > M_PI) {x_diff(3) -= 2.*M_PI; }
+        //while(x_diff(3) < -M_PI) {x_diff(3) += 2.*M_PI; }
+
+        P_ = P_ + weights_(i) * (x_diff * x_diff.transpose());
+
+        //std::cout << "x_diff: " << x_diff[0] << " " << x_diff[1] << " " << x_diff[2] << " " << x_diff[3] << " " << x_diff[4] << std::endl; 
+
       }
+
+      //std::cout << "P_  after predicting state covariance:"  << std::endl << P_ << std::endl;  
+
     }
 
    //std::cout << "x_ (prediction end prediction) : " <<  std::endl << x_ << std::endl; 
