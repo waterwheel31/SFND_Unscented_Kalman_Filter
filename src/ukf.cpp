@@ -26,12 +26,13 @@ UKF::UKF() {
   // initial covariance matrix
   P_ = MatrixXd(n_x_, n_x_);
   P_.fill(0.0);
+  P_(0,0) = 0.3;  P_(1,1) = 0.3; P_(2,2) = 0.3; P_(3,3) = 0.3; P_(4,4) = 0.3;
  
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 0.5;
+  std_a_ = 1.0;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 0.002; // original 30
+  std_yawdd_ = 0.8; // original 30
   
   /**
    * DO NOT MODIFY measurement noise values below. These are provided by the sensor manufacturer.
@@ -95,7 +96,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       if(meas_package.sensor_type_ == MeasurementPackage::LASER && use_laser_){
 
           double x = meas_package.raw_measurements_[0];
-          double y = meas_package.raw_measurements_[1];
+          const double y = meas_package.raw_measurements_[1];
 
           x_ << x, y, 0, 0, 0; 
 
@@ -109,18 +110,18 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       if(meas_package.sensor_type_ == MeasurementPackage::RADAR && use_radar_){
         
           // raw measurament 
-          double range = meas_package.raw_measurements_[0];
-          double phi = meas_package.raw_measurements_[1];   // angle 
-          double r_velocity = meas_package.raw_measurements_[2]; 
+          const double range = meas_package.raw_measurements_[0];
+          const double phi = meas_package.raw_measurements_[1];   // angle 
+          const double r_velocity = meas_package.raw_measurements_[2]; 
           
           // converting 
           double x = range * cos(phi); 
-          double y = range * sin(phi);
-          //double v = r_velocity; 
+          const double y = range * sin(phi);
+          const double v = r_velocity; 
 
-          double vx = r_velocity * cos(phi);
-          double vy = r_velocity * sin(phi);
-          double v =   sqrt(vx * vx + vy * vy);//r_velocity;
+          const double vx = r_velocity * cos(phi);
+          const double vy = r_velocity * sin(phi);
+          //double v =   sqrt(vx * vx + vy * vy);//r_velocity;
 
           x_ << x, y, v, 0, 0; 
 
@@ -139,19 +140,19 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   std::cout << "meas_package.timestamp_: "  << meas_package.timestamp_ << "  time_us_: " << time_us_ << std::endl; 
 
   // double delta_t = (meas_package.timestamp_ - time_us_) * 1e-6;
-  const double delta_t{ (meas_package.timestamp_ - time_us_) / 1000000.0 };
+  double delta_t = { (meas_package.timestamp_ - time_us_) / 1000000.0 };
 
   if (delta_t >= 0){
       time_us_ = meas_package.timestamp_; 
 
       std::cout << "delta_t is positive. sensor type: " << meas_package.sensor_type_ << std::endl; 
-      /*
+      
       while (delta_t > 0.1) {
-            constexpr double delta_t_temp = 0.05;
+            const double delta_t_temp = 0.05;
             Prediction(delta_t_temp);
             delta_t -= delta_t_temp;
-        }
-      */
+      }
+
       Prediction(delta_t); 
 
       //std::cout << meas_package.sensor_type_;
@@ -241,7 +242,7 @@ void UKF::Prediction(double delta_t) {
         py_p = p_y + v * delta_t * sin(yaw);
       }
 
-      std::cout << "px_p:" << px_p << " v :" << v << std::endl; 
+      // std::cout << "px_p:" << px_p << " v :" << v << std::endl; 
 
       double v_p = v;
 
@@ -286,6 +287,7 @@ void UKF::Prediction(double delta_t) {
       for (int i = 0; i < n_sig_; i++){
         VectorXd x_diff = X_sig_pred_.col(i) - x_; 
 
+        //std::cout << "x_diff : " << x_diff[0] << " " << x_diff[1] << " " << x_diff[2] << " " << x_diff[3] << " " << x_diff[4] << std::endl;
         //std::cout << "x_sig_pred_col(i): " << X_sig_pred_.col(i)[0] << " " << X_sig_pred_.col(i)[1] << " " << X_sig_pred_.col(i)[2] << " " << X_sig_pred_.col(i)[3] << " " << X_sig_pred_.col(i)[4] << std::endl; 
         //std::cout << "x_: " << x_[0] << " " << x_[1] << " " << x_[2] << " " << x_[3] << " " << x_[4] << std::endl; 
 
@@ -380,6 +382,8 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
    */
 
   std::cout << "update radar:" << std::endl; 
+  VectorXd z_ = meas_package.raw_measurements_;
+
 
   //std::cout << "z_ " << std::endl << z_ << std::endl;
   std::cout << "X_sig_pred_.col(0): " << X_sig_pred_.col(0)[0] << " " << X_sig_pred_.col(0)[1] << " " << X_sig_pred_.col(0)[2]<< " " << X_sig_pred_.col(0)[3] << " " <<  X_sig_pred_.col(0)[4] <<std::endl;
@@ -404,21 +408,24 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
       double phi = atan2(p_y,p_x);  
       double rho_dot = v; //0.0; 
 
-
       Z_sig(0,i) = rho;                  // rho
-      Z_sig(1,i) = phi;                         // phi
+      Z_sig(1,i) = phi;    
+      //Z_sig(2,i) = fabs(v);
+      
+                           // phi
       if (std::fabs(rho) > 0.001){
-        Z_sig(2,i) = (p_x*v_x + p_y*v_y) / rho;   // rho_dot
-        //std::cout <<  "Z_sig(2,i) count, value = "  << Z_sig(2,i)  << "p_x: "<< p_x << " p_y: " << p_y <<  " v:" << v   << " v_x: "  << v_x << " v_y: " << v_y  << " yaw: "<< yaw << std::endl;
+        //Z_sig(2,i) = (v_x*v_x + v_y*v_y) / rho;   // rho_dot
+         Z_sig(2,i) = (v_x*v_x + v_y*v_y)/rho;   // rho_dot
+        std::cout <<  "Z_sig(2,i)  "  << Z_sig(2,i)  << "p_x: "<< p_x << " p_y: " << p_y <<  " v:" << v   << " v_x: "  << v_x << " v_y: " << v_y  << " yaw: "<< yaw << std::endl;
       } else {
          Z_sig(2,i) = (p_x*v_x + p_y*v_y) / 0.001; 
         //std::cout <<  "Z_sig(2,i) not count"  << std::endl;
       }
+      
+  }
+      
 
-
-   }
-
-  //std::cout << "Z_sig " << std::endl << Z_sig << std::endl;
+  std::cout << "Z_sig(0): " << Z_sig(0,0) <<  " " << Z_sig(1,0)  << " " << Z_sig(2,0) << std::endl;
 
    //std::cout << "calculating the means  " << std::endl;
    // calculating the means 
@@ -436,7 +443,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
      //std::cout << "Z_sig.col( " <<i <<  "): " << Z_sig.col(i)[0] <<  " " << Z_sig.col(i)[1] << " " << Z_sig.col(i)[2] <<std:: endl; 
    }
 
-   std::cout << " z_pred_: : " <<  z_pred_[0] << " " << z_pred_[1] << " " << z_pred_[2]  << std::endl; 
+   std::cout << "z_pred_: : " <<  z_pred_[0] << " " << z_pred_[1] << " " << z_pred_[2]  << std::endl; 
 
    //std::cout << "z_pred " << std::endl << z_pred << std::endl;
 
@@ -463,8 +470,8 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   // create matrix for cross correlation Tc
   MatrixXd Tc = MatrixXd(n_x_, n_z_); 
   //std::cout << "create matrix for cross correlation Tc  " << std::endl;
-
   Tc.fill(0.0);
+
   for (int i = 0; i < n_sig_; i++) {  // 2n+1 simga points
     // residual
     VectorXd z_diff = Z_sig.col(i) - z_pred_;
@@ -487,13 +494,10 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   MatrixXd K = Tc * S.inverse();
   //std::cout << "K: " << std::endl << K << std::endl;
 
-
   // update state mean and covariance matrix
   //std::cout << "update state mean and covariance matrix  " << std::endl;
-  VectorXd z_ = meas_package.raw_measurements_;
 
-  std::cout << " z_ : " <<  z_[0] << " " << z_[1] << " " << z_[2]  << std::endl; 
-
+  std::cout << "z_ : " <<  z_[0] << " " << z_[1] << " " << z_[2]  << std::endl; 
 
   VectorXd z_diff = z_ - z_pred_;
   //std::cout << " z_diff : " <<  z_diff[0] << " " << z_diff[1] << " " << z_diff[2]  << std::endl; 
@@ -502,16 +506,15 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
   // angle normalization
   //std::cout << "angle normalization  " << std::endl;
-  while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
-  while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
+  //while (z_diff(1)> M_PI) z_diff(1)-=2.* M_PI;
+  //while (z_diff(1)<-M_PI) z_diff(1)+=2.* M_PI;
 
-  x_ = x_ + K * z_diff;
+  x_ = x_  +  K * z_diff;
   P_ = P_ - K * S * K.transpose();
-
 
   std::cout << "x after " << " x: " << x_[0] << " " << x_[1]  << " " << x_[2]  << " " << x_[3]  << " " << x_[4] << std::endl;
 
-  //std::cout << "X differential :" << K * z_diff << std::endl;  
+  // std::cout << "X differential :" << std::endl << K * z_diff << std::endl;    // << (K * z_diff)[0] << " " << (K * z_diff)[1]  << " " << (K * z_diff)[2]  << " " << (K * z_diff)[3] << std::endl;  
   //std::cout << "Update end  x_ " << std::endl << x_ << std::endl; 
 
 
